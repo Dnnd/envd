@@ -1,0 +1,35 @@
+#!/bin/sh
+
+SESSION_FILE="/tmp/envd_session"
+ENVIRONMENTD="$HOME/.config/environment.d"
+
+if [ -f "$SESSION_FILE" ]; then
+  IFS="="
+  while read -r variable value; do
+    if [ "$variable" != "" ]; then
+      systemctl --user unset-environment "$variable"
+      unset "$variable"
+    fi
+  done <"$SESSION_FILE"
+  echo "" >"$SESSION_FILE"
+fi
+set -a
+if [ -d "$ENVIRONMENTD" ]; then
+  for conf in "$ENVIRONMENTD"/*.conf; do
+    . "$conf"
+  done
+  cat "$ENVIRONMENTD"/*.conf >>"$SESSION_FILE"
+fi
+
+while [ "$1" != "" ]; do
+  if [ -d "$1" ]; then
+    for conf in "$1"/*.conf; do
+      . "$conf"
+    done
+    cat "$1"/*.conf >>"$SESSION_FILE"
+  fi
+  cat "$1"/*.conf | xargs systemctl --user set-environment
+  shift
+done
+set +a
+unset conf
